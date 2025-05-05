@@ -106,6 +106,7 @@ func (m *WorkManager) getUsedModules() []string {
 	return mods
 }
 
+/*
 func (m *WorkManager) getNearbyModules() []string {
 	mods := make([]string, 0, 3)
 	di, _ := os.ReadDir(m.workFileDir)
@@ -118,5 +119,32 @@ func (m *WorkManager) getNearbyModules() []string {
 		}
 		mods = append(mods, d.Name())
 	}
+	return mods
+}
+*/
+
+const maxDepth = 2
+
+func (m *WorkManager) getNearbyModules() []string {
+	mods := make([]string, 0, 10)
+	var walk func(string, int)
+	walk = func(dir string, depth int) {
+		if depth > maxDepth {
+			return
+		}
+		files, err := os.ReadDir(dir)
+		if err != nil {
+			return
+		}
+		for _, file := range files {
+			if file.IsDir() {
+				walk(path.Join(dir, file.Name()), depth+1)
+			} else if file.Name() == "go.mod" {
+				relPath, _ := filepath.Rel(m.workFileDir, dir)
+				mods = append(mods, relPath)
+			}
+		}
+	}
+	walk(m.workFileDir, 0)
 	return mods
 }
